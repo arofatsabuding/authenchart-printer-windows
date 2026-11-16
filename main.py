@@ -13,15 +13,10 @@ from smartcard_reader import register_smartcard_routes
 app = Flask(__name__)
 CORS(app)
 
-# ✅ รองรับทั้ง .py และ .exe (PyInstaller) — เหมือนใน tray_runner.py
-if getattr(sys, 'frozen', False):
-    base_path = os.path.dirname(sys.executable)
-else:
-    base_path = os.path.dirname(os.path.abspath(__file__))
+# ✅ config อยู่ที่ %APPDATA%\AuthenAPI\config.json (ตอนรัน .exe) — ดู app_paths.py
+from app_paths import APP_DIR as base_path, CONFIG_FILE
 
-CONFIG_FILE = os.path.join(base_path, "config.json")
-
-register_smartcard_routes(app, CONFIG_FILE)
+card_reader = register_smartcard_routes(app, CONFIG_FILE)
 
 
 @app.route("/ping", methods=["GET"])

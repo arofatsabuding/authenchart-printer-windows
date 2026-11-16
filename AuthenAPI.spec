@@ -7,6 +7,7 @@ hiddenimports = [
     'win32timezone', 'win32ui',
     # ✅ เพิ่มสำหรับฟีเจอร์อ่านบัตรประชาชน (pyscard)
     'smartcard_reader',
+    'app_paths',
     'smartcard',
     'smartcard.System',
     'smartcard.util',

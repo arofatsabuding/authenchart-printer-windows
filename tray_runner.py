@@ -3,7 +3,7 @@
 # System Tray + ตั้งค่าเครื่องพิมพ์ (Thermal RAW ESC/POS) + Feed Config
 # =========================
 
-import os, sys, io, json, time, base64, threading, importlib.util, subprocess, shutil
+import os, sys, io, json, time, base64, threading, importlib.util
 from pathlib import Path
 from PIL import Image as PIL_Image
 from PIL import ImageTk
@@ -19,23 +19,20 @@ from tkinter import ttk, messagebox
 from smartcard_reader import ThaiIDCardReader
 
 
-# ✅ รองรับทั้ง .py และ .exe (PyInstaller) และบันทึก config ถาวร
-if getattr(sys, 'frozen', False):
-    # ถ้าเป็น exe ให้ใช้ path ของไฟล์ exe จริง
-    base_path = os.path.dirname(sys.executable)
-else:
-    # ถ้าเป็น .py ปกติ ใช้ path ของไฟล์ .py
-    base_path = os.path.dirname(os.path.abspath(__file__))
+# ✅ ตัวโปรแกรมอยู่ที่ base_path (เช่น C:\Program Files\AuthenAPI — อ่านอย่างเดียว)
+# ส่วน config อยู่ที่ %APPDATA%\AuthenAPI\config.json ซึ่งเขียนได้เสมอ — ดู app_paths.py
+import app_paths
+from app_paths import APP_DIR as base_path, CONFIG_FILE
 
 BACKEND_FILE = os.path.join(base_path, "main.py")
-CONFIG_FILE = os.path.join(base_path, "config.json")
 
-APP_VERSION = "v2.0.1"
+APP_VERSION = "v2.1.0"
 
 # ✅ ระบบอัปเดตอัตโนมัติผ่าน GitHub Releases
 GITHUB_REPO = "arofatsabuding/authenchart-printer-windows"
-# ชื่อไฟล์ .exe ที่ต้องอัปโหลดแนบไปกับทุก release บน GitHub (ต้องตรงกับชื่อนี้เป๊ะๆ)
-UPDATE_ASSET_NAME = "AuthenAPI.exe"
+# ชื่อไฟล์ตัวติดตั้งที่ต้องแนบไปกับทุก release บน GitHub (ต้องตรงกับชื่อนี้เป๊ะๆ)
+# (แนบ AuthenAPI.exe ไปด้วย สำหรับเครื่องที่ยังเป็นเวอร์ชันเก่า <= 2.0.x ซึ่งหาไฟล์ชื่อนี้)
+UPDATE_ASSET_NAME = "AuthenAPI-Setup.exe"
 
 PORT = 9333
 
@@ -137,49 +134,26 @@ def check_for_update():
 
 def download_and_apply_update(download_url):
     """
-    ดาวน์โหลด .exe เวอร์ชันใหม่มาไว้ข้างๆ ตัวเดิม แล้วสร้าง updater (.bat)
-    เพื่อ: รอโปรแกรมนี้ปิดตัว -> ลบตัวเก่า -> เปลี่ยนชื่อตัวใหม่ -> เปิดขึ้นมาใหม่ -> ลบตัวเอง
-    จากนั้นปิดโปรแกรมปัจจุบันทันที ให้ .bat ทำงานต่อ
+    ดาวน์โหลดตัวติดตั้ง (AuthenAPI-Setup.exe) เวอร์ชันใหม่ไว้ในโฟลเดอร์ชั่วคราว แล้วสั่งรันแบบ /SILENT
+    ตัวติดตั้งจะขอสิทธิ์ admin (UAC) ปิดโปรแกรมนี้ ติดตั้งทับโฟลเดอร์เดิม แล้วเปิดโปรแกรมขึ้นมาใหม่เอง
     """
     if not getattr(sys, "frozen", False):
         raise RuntimeError("ฟีเจอร์อัปเดตอัตโนมัติใช้ได้เฉพาะตอนรันเป็น .exe เท่านั้น (ไม่ใช่ python tray_runner.py)")
 
-    current_exe = sys.executable
-    exe_dir = os.path.dirname(current_exe)
-    new_exe_path = os.path.join(exe_dir, f"_update_{UPDATE_ASSET_NAME}")
+    import tempfile
+    setup_path = os.path.join(tempfile.gettempdir(), UPDATE_ASSET_NAME)
 
     # ✅ ดาวน์โหลดแบบ stream กันกินแรมเยอะกับไฟล์ใหญ่
     with requests.get(download_url, stream=True, timeout=60) as res:
         res.raise_for_status()
-        with open(new_exe_path, "wb") as f:
+        with open(setup_path, "wb") as f:
             for chunk in res.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
 
-    # ✅ .bat updater: รอโปรแกรมปิดตัว (ปลด lock ไฟล์) ก่อนค่อยแทนที่
-    bat_path = os.path.join(exe_dir, "_apply_update.bat")
-    bat_content = (
-        "@echo off\r\n"
-        "timeout /t 2 /nobreak > NUL\r\n"
-        ":retry\r\n"
-        f'del /f /q "{current_exe}" 2>NUL\r\n'
-        f'if exist "{current_exe}" (\r\n'
-        "  timeout /t 1 /nobreak > NUL\r\n"
-        "  goto retry\r\n"
-        ")\r\n"
-        f'move /y "{new_exe_path}" "{current_exe}" > NUL\r\n'
-        f'start "" "{current_exe}"\r\n'
-        'del /f /q "%~f0"\r\n'
-    )
-    with open(bat_path, "w", encoding="utf-8") as f:
-        f.write(bat_content)
-
-    # ✅ รัน updater แบบแยกโปรเซส (detached) ไม่ผูกกับโปรเซสนี้ที่กำลังจะปิด
-    subprocess.Popen(
-        ["cmd", "/c", bat_path],
-        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-        close_fds=True,
-    )
+    # ✅ ต้องใช้ ShellExecute (os.startfile) ไม่ใช่ subprocess — ตัวติดตั้งต้องการสิทธิ์ admin
+    # subprocess.Popen จะล้มด้วย error 740 ส่วน ShellExecute จะเด้งหน้าต่าง UAC ให้กดยืนยัน
+    os.startfile(setup_path, "open", "/SILENT /SP- /SUPPRESSMSGBOXES /NORESTART")
     os._exit(0)
 
 
@@ -228,7 +202,8 @@ def _run_update_flow(silent_if_no_update=False):
         "พบเวอร์ชันใหม่",
         f"พบเวอร์ชันใหม่ {latest} (ปัจจุบัน {APP_VERSION})\n\n"
         f"ต้องการดาวน์โหลดและติดตั้งตอนนี้เลยไหม?\n"
-        f"(โปรแกรมจะปิดตัวชั่วคราวระหว่างติดตั้ง แล้วเปิดขึ้นมาใหม่อัตโนมัติ)"
+        f"(Windows จะถามสิทธิ์ผู้ดูแลระบบ — กด Yes แล้วโปรแกรมจะปิดตัวชั่วคราว\n"
+        f"ระหว่างติดตั้ง และเปิดขึ้นมาใหม่อัตโนมัติ)"
     )
     if not proceed:
         return
@@ -247,112 +222,6 @@ def silent_startup_update_check():
     """เช็คอัปเดตอัตโนมัติตอนเปิดโปรแกรม — เงียบๆ ถ้าไม่มีอัปเดตหรือเช็คไม่ได้ ไม่รบกวนผู้ใช้"""
     time.sleep(3)  # รอให้ระบบอื่นเริ่มทำงานเสร็จก่อน
     _run_update_flow(silent_if_no_update=True)
-
-
-# =========================
-# AUTO-INSTALL ตอนรันครั้งแรก (ก็อปปี้ไปที่ Desktop\AuthenChart + สร้าง shortcut)
-# =========================
-INSTALL_FOLDER_NAME = "AuthenAPI"
-SHORTCUT_NAME = "AuthenAPI.lnk"
-
-
-def _create_shortcuts(target_exe):
-    """สร้าง shortcut (.lnk) บน Desktop และใน shell:startup ชี้ไปที่ target_exe"""
-    try:
-        import win32com.client
-    except ImportError as e:
-        print("⚠️ ไม่พบ win32com — ข้ามการสร้าง shortcut:", e)
-        return
-
-    install_dir = os.path.dirname(target_exe)
-    icon_path = os.path.join(install_dir, "logo.ico")
-    if not os.path.exists(icon_path):
-        icon_path = target_exe  # ใช้ไอคอนจากตัว exe เองถ้าไม่มี logo.ico แยก
-
-    try:
-        shell = win32com.client.Dispatch("WScript.Shell")
-        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
-        startup_dir = shell.SpecialFolders("Startup")
-
-        for folder in (desktop_dir, startup_dir):
-            try:
-                os.makedirs(folder, exist_ok=True)
-                shortcut_path = os.path.join(folder, SHORTCUT_NAME)
-                shortcut = shell.CreateShortCut(shortcut_path)
-                shortcut.TargetPath = target_exe
-                shortcut.WorkingDirectory = install_dir
-                shortcut.IconLocation = icon_path
-                shortcut.Save()
-                print(f"🔗 สร้าง shortcut แล้ว: {shortcut_path}")
-            except Exception as e:
-                print(f"⚠️ สร้าง shortcut ที่ {folder} ไม่สำเร็จ: {e}")
-    except Exception as e:
-        print("⚠️ เปิด WScript.Shell ไม่สำเร็จ:", e)
-
-
-def ensure_installed():
-    """
-    ✅ ติดตั้งอัตโนมัติตอนรันครั้งแรก (เฉพาะตอนเป็น .exe เท่านั้น — ข้ามถ้ารันด้วย python ตรงๆ):
-    สร้างโฟลเดอร์ "AuthenAPI" ไว้ข้างๆ ตำแหน่งที่ .exe ถูกรันอยู่จริง (ไม่ว่าจะดาวน์โหลดไปไว้ที่ไหน
-    เช่น Downloads, D:\\, USB drive ฯลฯ — ไม่ขึ้นกับ path ของ Desktop เลย) ก็อปปี้ .exe +
-    config.json + logo ไปไว้ในนั้น สร้าง shortcut บน Desktop และใน shell:startup (ถ้าหา
-    Desktop เจอ — ถ้าไม่เจอก็แค่ข้ามการสร้าง shortcut ไป ไม่กระทบการติดตั้งหลัก)
-
-    ✅ ไม่ปิดตัวเอง/เปิดใหม่ (relaunch) เพราะทำให้ช้า (ต้องแตกไฟล์ .exe ซ้ำ 2 รอบ) —
-    รันต่อในโปรเซสปัจจุบันทันที แต่จะอัปเดต base_path/CONFIG_FILE ให้ชี้ไปที่โฟลเดอร์
-    ที่เพิ่งติดตั้งแทน เพื่อให้ config ที่บันทึกในเซสชันนี้ตรงกับตำแหน่งที่ shortcut ชี้ไป
-    """
-    global base_path, CONFIG_FILE, BACKEND_FILE
-
-    if not getattr(sys, "frozen", False):
-        return  # ฟีเจอร์นี้ใช้ได้เฉพาะตอนรันเป็น .exe เท่านั้น
-
-    current_exe = os.path.abspath(sys.executable)
-    exe_name = os.path.basename(current_exe)
-    current_dir = os.path.dirname(current_exe)
-
-    install_dir = os.path.join(current_dir, INSTALL_FOLDER_NAME)
-    target_exe = os.path.abspath(os.path.join(install_dir, exe_name))
-
-    # ✅ ถ้ารันจากตำแหน่งที่ติดตั้งไว้แล้ว (โฟลเดอร์ AuthenAPI) ไม่ต้องติดตั้งซ้ำ
-    # แค่เช็ค shortcut เผื่อหายไป
-    if os.path.normcase(current_exe) == os.path.normcase(target_exe):
-        _create_shortcuts(target_exe)
-        return
-
-    try:
-        os.makedirs(install_dir, exist_ok=True)
-
-        # ✅ ก็อปปี้ .exe ไปไว้ที่โฟลเดอร์ใหม่
-        shutil.copy2(current_exe, target_exe)
-
-        # ✅ ก็อปปี้ config.json เดิมไปด้วยถ้ามี ไม่มีก็สร้างค่า default ให้
-        source_config = os.path.join(current_dir, "config.json")
-        target_config = os.path.join(install_dir, "config.json")
-        if os.path.exists(source_config):
-            shutil.copy2(source_config, target_config)
-        elif not os.path.exists(target_config):
-            with open(target_config, "w", encoding="utf-8") as f:
-                json.dump(DEFAULTS, f, ensure_ascii=False, indent=2)
-
-        # ✅ ก็อปปี้ไอคอนไปด้วยเผื่อใช้ (ถ้ามี)
-        for asset in ("logo.ico", "logo.png"):
-            src_asset = os.path.join(current_dir, asset)
-            if os.path.exists(src_asset):
-                shutil.copy2(src_asset, os.path.join(install_dir, asset))
-
-        # ✅ สร้าง shortcut เป็นงานเสริม — ถ้าหา Desktop ไม่เจอ/สร้างไม่สำเร็จ ไม่กระทบการติดตั้งหลัก
-        _create_shortcuts(target_exe)
-
-        # ✅ อัปเดต path ที่ใช้งานในเซสชันนี้ให้ตรงกับตำแหน่งที่เพิ่งติดตั้ง (ไม่ relaunch แต่ยังสอดคล้องกัน)
-        base_path = install_dir
-        CONFIG_FILE = target_config
-        BACKEND_FILE = os.path.join(install_dir, "main.py")
-
-        print(f"✅ ติดตั้งเรียบร้อยที่ {install_dir} (รันต่อในโปรเซสปัจจุบันนี้เลย ไม่ relaunch ให้ช้า)")
-    except Exception as e:
-        # ✅ ติดตั้งไม่สำเร็จ ก็ปล่อยให้รันจากตำแหน่งเดิมต่อไปตามปกติ ไม่ต้อง block การใช้งาน
-        print("⚠️ ติดตั้งอัตโนมัติไม่สำเร็จ:", e)
 
 
 # =========================
@@ -464,6 +333,13 @@ def load_backend_and_patch():
         escpos_print_image(image, pname, psize, feed_px)
 
     backend.print_image_win = patched_print_image_win
+
+    # ✅ กันพลาด: ให้เซิร์ฟเวอร์ใช้ config.json ไฟล์เดียวกับหน้าตั้งค่าเสมอ
+    # (เคยมีบั๊กที่สองส่วนนี้อ่านคนละไฟล์ ทำให้ปิดการอ่านรูปแล้ว API ยังส่งรูปอยู่)
+    backend.CONFIG_FILE = CONFIG_FILE
+    card_reader = getattr(backend, "card_reader", None)
+    if card_reader is not None:
+        card_reader.config_path = CONFIG_FILE
     return backend
 
 
@@ -822,7 +698,7 @@ def run_flask_thread(backend_module):
 # MAIN
 # =========================
 if __name__ == "__main__":
-    ensure_installed()
+    app_paths.migrate_legacy_config()
     backend = load_backend_and_patch()
     run_flask_thread(backend)
     time.sleep(0.8)
