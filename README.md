@@ -24,8 +24,6 @@
    .venv\Scripts\python.exe -m PyInstaller AuthenAPI.spec --noconfirm --distpath dist-release --workpath build
    & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=2.1.1 installer\AuthenAPI.iss
    ```
-3. สร้าง GitHub release tag `v2.1.1` แนบไฟล์จาก `dist-release\`:
-   - `AuthenAPI-Setup.exe` — ตัวที่โปรแกรม v2.1.0 ขึ้นไปใช้อัปเดต
-   - `AuthenAPI.exe` — สำหรับเครื่องที่ยังเป็น v2.0.x (ตัวอัปเดตเก่าหาไฟล์ชื่อนี้)
+3. สร้าง GitHub release tag `v2.1.1` แนบไฟล์ `dist-release\AuthenAPI-Setup.exe`
 
-ชื่อไฟล์ต้องตรงตามนี้เป๊ะ และ tag ต้องมีเลขสูงกว่า `APP_VERSION` ของเครื่องลูกค้า ระบบอัปเดตถึงจะเห็น
+ชื่อไฟล์ต้องเป็น `AuthenAPI-Setup.exe` เป๊ะ และ tag ต้องมีเลขสูงกว่า `APP_VERSION` ของเครื่องลูกค้า ระบบอัปเดตถึงจะเห็น

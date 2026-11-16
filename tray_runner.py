@@ -31,7 +31,6 @@ APP_VERSION = "v2.1.0"
 # ✅ ระบบอัปเดตอัตโนมัติผ่าน GitHub Releases
 GITHUB_REPO = "arofatsabuding/authenchart-printer-windows"
 # ชื่อไฟล์ตัวติดตั้งที่ต้องแนบไปกับทุก release บน GitHub (ต้องตรงกับชื่อนี้เป๊ะๆ)
-# (แนบ AuthenAPI.exe ไปด้วย สำหรับเครื่องที่ยังเป็นเวอร์ชันเก่า <= 2.0.x ซึ่งหาไฟล์ชื่อนี้)
 UPDATE_ASSET_NAME = "AuthenAPI-Setup.exe"
 
 PORT = 9333
