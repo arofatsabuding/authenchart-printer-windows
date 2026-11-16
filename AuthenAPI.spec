@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('main.py', '.'), ('config.json', '.'), ('logo.png', '.'), ('logo.ico', '.')]
+datas = [('main.py', '.'), ('logo.png', '.'), ('logo.ico', '.')]
 binaries = []
 hiddenimports = [
     'win32timezone', 'win32ui',

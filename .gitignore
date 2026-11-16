@@ -6,3 +6,4 @@ build/
 dist/
 *.exe
 config.json
+dist-v2.0.1/

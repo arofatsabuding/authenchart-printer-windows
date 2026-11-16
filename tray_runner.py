@@ -30,7 +30,7 @@ else:
 BACKEND_FILE = os.path.join(base_path, "main.py")
 CONFIG_FILE = os.path.join(base_path, "config.json")
 
-APP_VERSION = "v2.0.0"
+APP_VERSION = "v2.0.1"
 
 # ✅ ระบบอัปเดตอัตโนมัติผ่าน GitHub Releases
 GITHUB_REPO = "arofatsabuding/authenchart-printer-windows"
