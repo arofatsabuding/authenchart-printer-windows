@@ -26,7 +26,7 @@ from app_paths import APP_DIR as base_path, CONFIG_FILE
 
 BACKEND_FILE = os.path.join(base_path, "main.py")
 
-APP_VERSION = "v2.1.0"
+APP_VERSION = "v2.1.1"
 
 # ✅ ระบบอัปเดตอัตโนมัติผ่าน GitHub Releases
 GITHUB_REPO = "arofatsabuding/authenchart-printer-windows"
@@ -160,7 +160,7 @@ def _show_update_message(title, message, error=False):
     root = tk.Tk()
     root.withdraw()
     try:
-        icon_path = os.path.join(base_path, "logo.ico")
+        icon_path = os.path.join(base_path, "app.ico")
         root.iconbitmap(icon_path)
     except:
         pass
@@ -175,7 +175,7 @@ def _ask_yes_no_update(title, message):
     root = tk.Tk()
     root.withdraw()
     try:
-        icon_path = os.path.join(base_path, "logo.ico")
+        icon_path = os.path.join(base_path, "app.ico")
         root.iconbitmap(icon_path)
     except:
         pass
@@ -364,7 +364,7 @@ def open_settings_window():
     root.geometry("480x630")
 
     try:
-        icon_path = os.path.join(base_path, "logo.ico")
+        icon_path = os.path.join(base_path, "app.ico")
         root.iconbitmap(icon_path)
     except:
         pass
@@ -542,7 +542,7 @@ def show_card_data_window(data):
     win.geometry("480x680")
 
     try:
-        icon_path = os.path.join(base_path, "logo.ico")
+        icon_path = os.path.join(base_path, "app.ico")
         win.iconbitmap(icon_path)
     except:
         pass
@@ -656,7 +656,7 @@ def start_tray(backend_module):
     APP_NAME = f"AuthenChart API ({APP_VERSION})"
 
     try:
-        icon_path = Path(__file__).with_name("logo.png")
+        icon_path = Path(__file__).with_name("app.png")
         img = PILImageForTray.open(icon_path)
     except:
         img = PILImageForTray.new("RGB", (64, 64), (0, 160, 90))

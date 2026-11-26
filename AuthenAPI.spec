@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('main.py', '.'), ('logo.png', '.'), ('logo.ico', '.')]
+datas = [('main.py', '.'), ('app.png', '.'), ('app.ico', '.')]
 binaries = []
 hiddenimports = [
     'win32timezone', 'win32ui',
@@ -71,5 +71,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['logo.ico'],
+    icon=['app.ico'],
 )

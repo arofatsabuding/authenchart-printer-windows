@@ -27,7 +27,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist-release
 OutputBaseFilename=AuthenAPI-Setup
-SetupIconFile=..\logo.ico
+SetupIconFile=..\app.ico
 UninstallDisplayIcon={app}\AuthenAPI.exe
 UninstallDisplayName=AuthenAPI
 Compression=lzma2/max
@@ -46,12 +46,12 @@ Name: "startup"; Description: "เปิด AuthenAPI อัตโนมัต�
 
 [Files]
 Source: "..\dist-release\AuthenAPI.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\logo.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\app.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\AuthenAPI"; Filename: "{app}\AuthenAPI.exe"; IconFilename: "{app}\logo.ico"
-Name: "{autodesktop}\AuthenAPI"; Filename: "{app}\AuthenAPI.exe"; IconFilename: "{app}\logo.ico"; Tasks: desktopicon
-Name: "{autostartup}\AuthenAPI"; Filename: "{app}\AuthenAPI.exe"; IconFilename: "{app}\logo.ico"; Tasks: startup
+Name: "{autoprograms}\AuthenAPI"; Filename: "{app}\AuthenAPI.exe"; IconFilename: "{app}\app.ico"
+Name: "{autodesktop}\AuthenAPI"; Filename: "{app}\AuthenAPI.exe"; IconFilename: "{app}\app.ico"; Tasks: desktopicon
+Name: "{autostartup}\AuthenAPI"; Filename: "{app}\AuthenAPI.exe"; IconFilename: "{app}\app.ico"; Tasks: startup
 
 [InstallDelete]
 ; shortcut ที่เวอร์ชันเก่า (<= 2.0.x ติดตั้งตัวเองแบบไม่มีตัวติดตั้ง) สร้างไว้ — ลบทิ้งกันเปิดซ้ำ 2 ตัวตอนเปิดเครื่อง
